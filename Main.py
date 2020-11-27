@@ -103,14 +103,12 @@ def predict_activity_single(guide_seq, target_seq):
 def test():
     util = Util.Utils()
     df = util.read_excel_to_df(WORK_DIR + IN + '201127_For KSH.xlsx', header=None)
-    print(df)
 
     len_df = len(df[df.columns[0]])
 
     for i in range(len_df):
-        g_seq = df.loc[i][0][:LEN_SEQ]
-        t_seq = df.loc[i][3][:LEN_SEQ]
-        print(g_seq, t_seq)
+        g_seq = df.loc[i][0][:LEN_SEQ].upper()
+        t_seq = df.loc[i][3][:LEN_SEQ].upper()
         predict_activity_single(g_seq, t_seq)
 
 
