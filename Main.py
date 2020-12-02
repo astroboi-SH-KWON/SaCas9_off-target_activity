@@ -96,8 +96,8 @@ def predict_activity_single(guide_seq, target_seq):
                 num_mm += 1
                 pred_activity *= mm_coeff
 
-    print(guide_seq, target_seq, pred_activity, num_mm, sep='\t')
-    # return guide_seq, target_seq, pred_activity, num_mm
+    # print(guide_seq, target_seq, pred_activity, num_mm, sep='\t')
+    return guide_seq, target_seq, pred_activity, num_mm
 
 
 def test():
@@ -110,7 +110,6 @@ def test():
         g_seq = df.loc[i][0][:LEN_SEQ].upper()
         t_seq = df.loc[i][3][:LEN_SEQ].upper()
         predict_activity_single(g_seq, t_seq)
-
 
 
 if __name__ == '__main__':
