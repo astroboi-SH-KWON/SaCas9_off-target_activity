@@ -33,14 +33,18 @@ with https://github.com/editasmedicine/pairwise-library-screen
         1-5-2) sgRNA with context sequence (location, strand, cds 내에서 cleavage site의 위치 정보 등을 포함)
 
 2) Cas-offinder (제가 돌릴 부분이라 생략하겠습니다.)
-
+    
 3) SaCas9 off-target activity
-    3-1) Initial input file directory: /extdata1/JaeWoo/Project/YoungGwang_CasOffFinder/Output/FirstResult/ 
-    3-2) Input filter: mismatch가 0인 target의 개수가 1인 guide RNA만 사용
-    3-3) Soff-target:  https://github.com/editasmedicine/pairwise-library-screen 의 predict_activity_single.py 
-    3-4) Sguide = 100/(1+ ∑_(𝑖=1)^𝑛▒〖𝑆𝑜𝑓𝑓−𝑡𝑎𝑟𝑔𝑒𝑡(𝑖)〗) 
-                = 100/(1 + sum(Soff_pred_activity))
+    3-1) Initial input file directory: B206 /extdata1/JaeWoo/Project/YoungGwang_CasOffFinder/Output/FirstResult/ 
+    3-2) Soff-target: [a relative link](./pairwise-library-screen-master/predict_activity_single.py) https://github.com/editasmedicine/pairwise-library-screen 의 predict_activity_single.py
+    3-3) Off-target rank
+        3-3-1) Tier: off-target position이 CDS (Tier I)인지 non-CDS (Tier II)인지 분류
+            3-3-1-1) Input은 Cas-OFFinder 결과의 2번째 column에서 chromosome 정보 (Cas-OFFinder output file이 조금 지저분해 chromosome 정보를 가져올 때 확인이 필요할 것 같습니다)
+            3-3-1-2) 5번째 column이 +면, 3번째 column의 position + 19가 cleavage site (선생님이 get_seq_near_target_index를 해주실 때의 position 방식과 같게 하려고 위치 정보를 일부 수정하는 과정입니다)
+            3-3-1-3) 5번째 column이 –면, 3번째 column의 position + 10가 cleavage site (선생님이 get_seq_near_target_index를 해주실 때의 position 방식과 같게 하려고 위치 정보를 일부 수정하는 과정입니다)
+            3-3-1-4) CDS reference는 1-2-1조건을 제외한 ccds file을 사용, 즉 하나의 gene에 대해서 모든 transcript) ==> make_filtered_ccds_current_file_by_all_ccds_id() [a relative link](./MakeCDSInput.py)
+        3-3-2) Match bin: Soff-target을 0.05, 0.2, 1을 기준으로 분류, 즉 Soff-target = 1 (Match bin I), 1 > Soff-target  >= 0.2 (Match bin II), 0.2 > Soff-target >= 0.05 (Match bin III), Soff-target < 0.05 (Match bin IV)으로 분류
+    3-4) Sguide = 100/(1+ ∑_(𝑖=1)^𝑛▒〖𝑆𝑜𝑓𝑓−𝑡𝑎𝑟𝑔𝑒𝑡(𝑖)〗)
+    
     3-5) Output file
-        3-5-1) 각각의 guide별로 mismatch 개수에 따른 target 개수 정리 (e.g. guide RNA sequence, # of 0-bp mismatched targets, ...,  # of 3-bp mismatched targets)
-        3-5-2) 각각의 guide 별로 3-4)에서 구한 최종 score
-        3-5-3) 3-5-1)과 3-5-2)는 함께 주시면 정리하기 좋겠지만 파일이 너무 커지는 등의 문제가 발생한다면 따로 주셔도 무방합니다.
+    ![alt text](./result.PNG)
