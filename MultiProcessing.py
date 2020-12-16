@@ -31,11 +31,11 @@ OU = 'output/'
 
 CAS_OFF_RESULT = 'FirstResult/'
 
-FLTD_CDS_INFO = 'all_ccds_filtered_201130_CCDS_mouse_current.txt'  # mouse
-# FLTD_CDS_INFO = 'all_ccds_filtered_201130_CCDS_human_current.txt'  # human
+# FLTD_CDS_INFO = 'all_ccds_filtered_201130_CCDS_mouse_current.txt'  # mouse
+FLTD_CDS_INFO = 'all_ccds_filtered_201130_CCDS_human_current.txt'  # human
 
-OFF_TRGT_FORM = 'cleavage_pos_in_shortest_cds_w_whole_mouse_gene_SaCas9.txt_*_result.txt'  # mouse
-# OFF_TRGT_FORM = 'cleavage_pos_in_shortest_cds_w_whole_human_gene_SaCas9.txt_*_result.txt'  # human
+# OFF_TRGT_FORM = 'cleavage_pos_in_shortest_cds_w_whole_mouse_gene_SaCas9.txt_*_result.txt'  # mouse
+OFF_TRGT_FORM = 'cleavage_pos_in_shortest_cds_w_whole_human_gene_SaCas9.txt_*_result.txt'  # human
 
 LEN_SEQ = 21
 
@@ -114,7 +114,7 @@ def predict_activity_single(guide_seq, target_seq):
     return guide_seq, target_seq, pred_activity, num_mm
 
 
-def process(path):
+def process(path_arr):
     util = Util.Utils()
     logic_prep = LogicPrep.LogicPreps()
     logic = Logic.Logics()
@@ -129,42 +129,55 @@ def process(path):
     cds_info.clear()
 
     result_dict = {}
-    with open(path[0]) as f:
-        while True:
-            tmp_line = f.readline()
-            if tmp_line == '': break
+    for path in path_arr:
+        with open(path) as f:
+            while True:
+                tmp_line = f.readline().replace('\n', '')
+                if tmp_line == '':
+                    """
+                    GGTGTAGAGCTGGAACATGAANNNNNN	X dna:chromosome chromosome:GRCh38:X:1:156040895:1 REF	67064737	GGTaTAGtGaTGGAAgATGAAATGAAT	-	4
+                    GAGGTTGAGCAGGGCGCGCTGNNNNNN	X dna:chromosome chromosome:GRCh38:X:1:156040895:1 REF	16787030	GcaGgTGcGCAGGGCGCGCTGCGGGGT	+	4
+                                there is empty line like this
+                    TCTCCTCTGCCTCTTCTTTCGNNNNNN	X dna:chromosome chromosome:GRCh38:X:1:156040895:1 REF	39576853	TCTCCTCTGCCTCTcCTTTgaGGGGGT	+	3
+                    TCTCCTCTGCCTCTTCTTTCGNNNNNN	X dna:chromosome chromosome:GRCh38:X:1:156040895:1 REF	49292670	TgTCtcCTGCCTCcTCTTTCGAGGGAT	-	4
+                    """
+                    # check if there is another line
+                    tmp_line = f.readline().replace('\n', '')
+                    if tmp_line == '':
+                        break
 
-            tmp_arr = tmp_line.split('\t')
-            g_seq = tmp_arr[0][:LEN_SEQ].upper()
-            tmp_chr = 'chr' + tmp_arr[1].split(' ')[0]
-            tmp_pos = int(tmp_arr[2])
-            t_seq = tmp_arr[3][:LEN_SEQ].upper()
-            tmp_strnd = tmp_arr[4].replace(' ', '')
-            if tmp_strnd == '+':
-                tmp_pos += 19
-            else:
-                tmp_pos += 10
-            num_mismatch = int(tmp_arr[-1])
-            guide_seq, _, scr_off_trgt, _ = predict_activity_single(g_seq, t_seq)
+                tmp_arr = tmp_line.split('\t')
+                g_seq = tmp_arr[0][:LEN_SEQ].upper()
+                tmp_chr = 'chr' + tmp_arr[1].split(' ')[0]
+                tmp_pos = int(tmp_arr[2])
+                t_seq = tmp_arr[3][:LEN_SEQ].upper()
+                tmp_strnd = tmp_arr[4].replace(' ', '')
+                if tmp_strnd == '+':
+                    tmp_pos += 19
+                else:
+                    tmp_pos += 10
+                num_mismatch = int(tmp_arr[-1])
+                guide_seq, _, scr_off_trgt, _ = predict_activity_single(g_seq, t_seq)
 
-            in_cds_flag = logic.check_seq_in_cds(cds_dict[tmp_chr], tmp_pos)
-            idx_bin_label = logic.check_which_bin_label(BIN_LABEL, scr_off_trgt)
+                in_cds_flag = logic.check_seq_in_cds(cds_dict[tmp_chr], tmp_pos)
+                idx_bin_label = logic.check_which_bin_label(BIN_LABEL, scr_off_trgt)
 
-            idx_bin_label *= 2
-            if not in_cds_flag:
-                idx_bin_label += 1
+                idx_bin_label *= 2
+                if not in_cds_flag:
+                    idx_bin_label += 1
 
-            if guide_seq in result_dict:
-                result_dict[guide_seq][idx_bin_label] += 1
-                result_dict[guide_seq][-1] += scr_off_trgt
-            else:
-                init_arr = []
-                for i in range(len(BIN_LABEL) * 2 + 1):
-                    init_arr.append(0)
-                result_dict.update({guide_seq: init_arr})
-                result_dict[guide_seq][idx_bin_label] += 1
-                result_dict[guide_seq][-1] += scr_off_trgt
-    cds_dict.clear()
+                if guide_seq in result_dict:
+                    result_dict[guide_seq][idx_bin_label] += 1
+                    result_dict[guide_seq][-1] += scr_off_trgt
+                else:
+                    init_arr = []
+                    for i in range(len(BIN_LABEL) * 2 + 1):
+                        init_arr.append(0)
+                    result_dict.update({guide_seq: init_arr})
+                    result_dict[guide_seq][idx_bin_label] += 1
+                    result_dict[guide_seq][-1] += scr_off_trgt
+        cds_dict.clear()
+        print('DONE :', str(path))
     return result_dict
 
 
