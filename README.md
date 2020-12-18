@@ -36,7 +36,7 @@ with https://github.com/editasmedicine/pairwise-library-screen
     
 3) SaCas9 off-target activity
     3-1) Initial input file directory: B206 /extdata1/JaeWoo/Project/YoungGwang_CasOffFinder/Output/FirstResult/ 
-    3-2) Soff-target: [a relative link](./pairwise-library-screen-master/predict_activity_single.py) https://github.com/editasmedicine/pairwise-library-screen 의 predict_activity_single.py
+    3-2) Soff-target: [predict_activity_single.py](./pairwise-library-screen-master/predict_activity_single.py) https://github.com/editasmedicine/pairwise-library-screen 의 predict_activity_single.py
     3-3) Off-target rank
         3-3-1) Tier: off-target position이 CDS (Tier I)인지 non-CDS (Tier II)인지 분류
             3-3-1-1) Input은 Cas-OFFinder 결과의 2번째 column에서 chromosome 정보 (Cas-OFFinder output file이 조금 지저분해 chromosome 정보를 가져올 때 확인이 필요할 것 같습니다)
