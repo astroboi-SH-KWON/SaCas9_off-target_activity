@@ -19,6 +19,10 @@ WORK_DIR = os.getcwd() + "/"
 PROJECT_NAME = WORK_DIR.split("/")[-2]
 SYSTEM_NM = platform.system()
 
+# type
+# TYPE = 'mouse'
+TYPE = 'human'
+
 if SYSTEM_NM == 'Linux':
     # REAL
     pass
@@ -31,11 +35,8 @@ OU = 'output/'
 
 CAS_OFF_RESULT = 'FirstResult/'
 
-# FLTD_CDS_INFO = 'all_ccds_filtered_201130_CCDS_mouse_current.txt'  # mouse
-FLTD_CDS_INFO = 'all_ccds_filtered_201130_CCDS_human_current.txt'  # human
-
-# OFF_TRGT_FORM = 'cleavage_pos_in_shortest_cds_w_whole_mouse_gene_SaCas9.txt_*_result.txt'  # mouse
-OFF_TRGT_FORM = 'cleavage_pos_in_shortest_cds_w_whole_human_gene_SaCas9.txt_*_result.txt'  # human
+FLTD_CDS_INFO = 'all_ccds_filtered_201130_CCDS_' + TYPE + '_current.txt'
+OFF_TRGT_FORM = 'cleavage_pos_in_shortest_cds_w_whole_' + TYPE + '_gene_SaCas9.txt_*_result.txt'
 
 LEN_SEQ = 21
 
@@ -159,12 +160,24 @@ def process(path_arr):
                 num_mismatch = int(tmp_arr[-1])
                 guide_seq, _, scr_off_trgt, _ = predict_activity_single(g_seq, t_seq)
 
+                # check bin I (in cds) or bin II(not in any cds)
                 in_cds_flag = logic.check_seq_in_cds(cds_dict[tmp_chr], tmp_pos)
+                # check Soff-trgt Tier [1, 0.2, 0.05, 0]
                 idx_bin_label = logic.check_which_bin_label(BIN_LABEL, scr_off_trgt)
 
                 idx_bin_label *= 2
                 if not in_cds_flag:
                     idx_bin_label += 1
+
+                # TODO debugging
+                if guide_seq == 'GGTACACCTTCGCTGGTTCAC':
+                    print(in_cds_flag, ': in_cds_flag')
+                    print(idx_bin_label, ': idx_bin_label')
+                    print(tmp_chr, ': tmp_chr')
+                    print(tmp_pos, ': tmp_pos')
+                    print()
+                    with open(WORK_DIR + OU + guide_seq + '.txt' + str(tmp_pos), 'a') as f:
+                        f.write(str(cds_dict[tmp_chr]) + '\n')
 
                 if guide_seq in result_dict:
                     result_dict[guide_seq][idx_bin_label] += 1

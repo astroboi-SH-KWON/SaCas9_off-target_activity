@@ -12,8 +12,8 @@ from collections import defaultdict
 ########################################
 
 import Util
-# import Logic
-# import LogicPrep
+import Logic
+import LogicPrep
 ############### start to set env ################
 WORK_DIR = os.getcwd() + "/"
 PROJECT_NAME = WORK_DIR.split("/")[-2]
@@ -28,6 +28,12 @@ else:
 
 IN = 'input/'
 OU = 'output/'
+
+FLTD_CDS_INFO = 'all_ccds_filtered_201130_CCDS_mouse_current.txt'  # mouse
+# FLTD_CDS_INFO = 'all_ccds_filtered_201130_CCDS_human_current.txt'  # human
+
+FILE_NM_FORM = 'cleavage_pos_in_shortest_cds_w_whole_mouse_gene_SaCas9.txt_*_result.txt'  # mouse
+# FILE_NM_FORM = 'cleavage_pos_in_shortest_cds_w_whole_human_gene_SaCas9.txt_*_result.txt'  # human
 
 LEN_SEQ = 21
 
@@ -96,24 +102,99 @@ def predict_activity_single(guide_seq, target_seq):
                 num_mm += 1
                 pred_activity *= mm_coeff
 
-    # print(guide_seq, target_seq, pred_activity, num_mm, sep='\t')
     return guide_seq, target_seq, pred_activity, num_mm
+
+
+def analize_individual(off_trgt, result_dict):
+    print('st : analize_individual\n', off_trgt)
+    logic = Logic.Logics()
+
+    with open(off_trgt) as f:
+        while True:
+            tmp_line = f.readline()
+            if tmp_line == '': break
+            tmp_arr = tmp_line.split('\t')
+            g_seq = tmp_arr[0][:LEN_SEQ].upper()
+            t_seq = tmp_arr[3][:LEN_SEQ].upper()
+            num_mismatch = int(tmp_arr[-1])
+            guide_seq, _, pred_activity, _ = predict_activity_single(g_seq, t_seq)
+
+            if guide_seq in result_dict:
+                result_dict[guide_seq][0][num_mismatch] += 1
+                result_dict[guide_seq][1] += pred_activity
+            else:
+                # e.g. guide RNA sequence, # of 0-bp mismatched targets, ...,  # of 6-bp mismatched targets
+                result_dict.update({guide_seq: [[0, 0, 0, 0, 0, 0, 0], pred_activity]})
+                result_dict[guide_seq][0][num_mismatch] += 1
+
+    result_fn, _ = os.path.splitext(off_trgt)
+    with open(result_fn.replace(IN[:-1], OU[:-1]) + '_mis_match', 'w') as mis_mat_ou_f:
+        with open(result_fn.replace(IN[:-1], OU[:-1]) + '_guide_score', 'w') as scores_ou_f:
+            for guide_seq, val_arr in result_dict.items():
+
+                # make file for e.g. guide seq, # of 0-bp mismatched targets, ...,  # of 6-bp mismatched targets
+                tmp_row = ''
+                tmp_row += guide_seq + '\t'
+                for num_mismat in val_arr[0]:
+                    tmp_row += str(num_mismat) + '\t'
+                mis_mat_ou_f.write(tmp_row[:-1] + '\n')
+
+                # guide score
+                num_0_mis_mat = val_arr[0][0]
+                if num_0_mis_mat == 1:
+                    sum_pred_act = val_arr[1]
+                    sguide_score = logic.cal_sguide_score(sum_pred_act)
+                    scores_ou_f.write(guide_seq + '\t' + str(sguide_score) + '\n')
+
+    print('en : analize_individual\n', off_trgt)
+
+
+def multi_processing_individual():
+    util = Util.Utils()
+
+    sources = util.get_files_from_dir(WORK_DIR + IN + FILE_NM_FORM)
+
+    for off_trgt in sources:
+        proc = mp.Process(target=analize_individual, args=(off_trgt, {}))
+        proc.start()
+
+
+def multi_processing_all_in_one():
+    util = Util.Utils()
+
+    sources = util.get_files_from_dir(WORK_DIR + IN + FILE_NM_FORM)
+
+    manager = mp.Manager()
+    result_dict = manager.dict()
+    jobs = []
+    for off_trgt in sources:
+        proc = mp.Process(target=analize_individual, args=(off_trgt, result_dict))
+        jobs.append(proc)
+        proc.start()
+
+    for ret_proc in jobs:
+        ret_proc.join()
 
 
 def test():
     util = Util.Utils()
-    df = util.read_excel_to_df(WORK_DIR + IN + '201127_For KSH.xlsx', header=None)
+    logic_prep = LogicPrep.LogicPreps()
+    logic = Logic.Logics()
+    cds_info = util.read_tsv_ignore_N_line(WORK_DIR + IN + FLTD_CDS_INFO)
 
-    len_df = len(df[df.columns[0]])
-
-    for i in range(len_df):
-        g_seq = df.loc[i][0][:LEN_SEQ].upper()
-        t_seq = df.loc[i][3][:LEN_SEQ].upper()
-        predict_activity_single(g_seq, t_seq)
+    """
+    3-3-1) Tier: off-target position이 CDS (Tier I)인지 non-CDS (Tier II)인지 분류
+    seq_idx list by key as chromosome
+    """
+    trgt_pos = 97104886
+    trgt_pos += 15
+    cds_idx_list = logic_prep.get_cds_idx_list_by_chr(cds_info)['chr1']
+    print(not logic.check_seq_in_cds(cds_idx_list, trgt_pos))
 
 
 if __name__ == '__main__':
     start_time = time.perf_counter()
     print("start [ " + PROJECT_NAME + " ]>>>>>>>>>>>>>>>>>>")
+    # multi_processing_individual()
     test()
     print("::::::::::: %.2f seconds ::::::::::::::" % (time.perf_counter() - start_time))

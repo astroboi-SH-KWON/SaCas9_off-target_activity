@@ -123,8 +123,9 @@ class ToolUtils:
                 fout.write(line)
                 if (i + 1) % num_row == 0:
                     fout.close()
-                    fout = open('{}/{}_{}{}'.format(splited_files_dir, output_file_nm, str(i // num_row + 1), output_file_ext), "w")
-
+                    fout = open(
+                        '{}/{}_{}{}'.format(splited_files_dir, output_file_nm, str(i // num_row + 1), output_file_ext),
+                        "w")
             fout.close()
 
     # conda install -c anaconda xlrd
